@@ -2,7 +2,7 @@
 
 
 
-**Assignment: Software Requirements Analysis and Design (Full-Stack CRUD Application Development with DevOps Practices)**
+**IFN 636 Assignment 1.2: Software Requirements Analysis and Design (Full-Stack CRUD Application Development with DevOps Practices)**
 
 ---
 
@@ -10,8 +10,8 @@
 
 | | |
 |---|---|
-| **Student Name** | Hashim Hilal |
-| **Student ID** | N12540447 |
+| **Name** | Hashim Hilal |
+| **ID** | N12540447 |
 
 ---
 
@@ -28,11 +28,11 @@ The **Meeting Room Booking System** allows authenticated users to create, view, 
 ---
 ## Credentials
 **RDP** 
-Username: ububtu
+Username: ububtu   
 Password: Password123!
 
 **MongoDB**
-Username: hashim_db_user
+Username: hashim_db_user   
 Password: Password123!
 
 ---
@@ -41,7 +41,7 @@ Password: Password123!
 After RDP please access via localhost as Public IP port 80 is not accessible
 Use following Credentials to test CRUD Functionality for Bookings
 
-User Email: test@test.com
+User Email: test@test.com    
 Password: Test1234!
 
 ---
@@ -255,4 +255,4 @@ Job 3: Deploy             ← restarts PM2 + reloads Nginx
 
 **Meeting Room Booking App:** https://github.com/HashimHilal-QUT/MeetingRoomBook2
 
-**This Project:** https://github.com/HashimHilal-QUT/MeetingRoomBook2
+
