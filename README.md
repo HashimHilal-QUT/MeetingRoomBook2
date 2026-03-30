@@ -189,7 +189,7 @@ npm test
 # Expected output: 16 passing
 ```
 
-### Production (Azure VM)
+### Production 
 ```bash
 # After every VM restart, run:
 ./startup.sh
