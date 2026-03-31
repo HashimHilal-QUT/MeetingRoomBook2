@@ -13,6 +13,7 @@ jobs:
   test:
     name: Backend Tests
     runs-on: self-hosted
+    environment: development
 
     steps:
       - name: Checkout code
@@ -39,6 +40,7 @@ jobs:
   build:
     name: Frontend Build
     runs-on: self-hosted
+    environment: development
     needs: test
 
     steps:
@@ -60,10 +62,11 @@ jobs:
           REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
         run: npm run build
 
-  # ─── JOB 3: Deploy to Azure VM (only on push to main) ───────────────────────
+  # ─── JOB 3: Deploy to EC2 VM (only on push to main) ───────────────────────
   deploy:
     name: Deploy Application
     runs-on: self-hosted
+    environment: production
     needs: [test, build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
