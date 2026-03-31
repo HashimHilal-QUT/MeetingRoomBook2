@@ -33,7 +33,8 @@ jobs:
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          PORT: ${{ secrets.PORT }}
+          PORT: ${{ vars.PORT }}
+          NODE_ENV: ${{ vars.NODE_ENV }}
         run: npm test
 
   # ─── JOB 2: Build frontend ──────────────────────────────────────────────────
@@ -59,10 +60,10 @@ jobs:
       - name: Build frontend
         working-directory: ./frontend
         env:
-          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+          REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
         run: npm run build
 
-  # ─── JOB 3: Deploy to EC2 VM (only on push to main) ───────────────────────
+  # ─── JOB 3: Deploy to Azure VM (only on push to main) ───────────────────────
   deploy:
     name: Deploy Application
     runs-on: self-hosted
@@ -89,12 +90,15 @@ jobs:
       - name: Build frontend with production URL
         working-directory: ./frontend
         env:
-          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+          REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
         run: |
           rm -rf ./build
           npm run build
 
       - name: Restart backend with PM2
+        env:
+          NODE_ENV: ${{ vars.NODE_ENV }}
+          PORT: ${{ vars.PORT }}
         run: |
           cd ./backend
           pm2 describe meetingroom-api > /dev/null 2>&1 \
