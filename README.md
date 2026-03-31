@@ -1,8 +1,8 @@
 # Meeting Room Booking System
 
-**Assessment 1.2 (Total Marks 20)**
 
-**Assignment: Software Requirements Analysis and Design (Full-Stack CRUD Application Development with DevOps Practices)**
+
+**IFN 636 Assignment 1.2: Software Requirements Analysis and Design (Full-Stack CRUD Application Development with DevOps Practices)**
 
 ---
 
@@ -10,8 +10,8 @@
 
 | | |
 |---|---|
-| **Student Name** | Hashim Hilal |
-| **Student ID** | N12540447 |
+| **Name** | Hashim Hilal |
+| **ID** | N12540447 |
 
 ---
 
@@ -24,6 +24,25 @@ For this assessment, the task was to develop a system that implements CRUD (Crea
 ## Project Overview
 
 The **Meeting Room Booking System** allows authenticated users to create, view, update, and delete meeting room bookings. Each booking is tied to the logged-in user and protected by JWT authentication, ensuring users can only manage their own bookings.
+
+---
+## Credentials
+**RDP** 
+Username: ububtu   
+Password: Password123!
+
+**MongoDB**
+Username: hashim_db_user   
+Password: Password123!
+
+---
+## Meeting Room Booking Application
+
+After RDP please access via localhost as Public IP port 80 is not accessible
+Use following Credentials to test CRUD Functionality for Bookings
+
+User Email: test@test.com    
+Password: Test1234!
 
 ---
 
@@ -39,7 +58,7 @@ The **Meeting Room Booking System** allows authenticated users to create, view, 
 | Process Manager | PM2 |
 | Testing | Mocha, Chai, Sinon |
 | CI/CD | GitHub Actions |
-| Deployment | Azure Virtual Machine |
+| Deployment | AWS EC2 Instance |
 
 ---
 
@@ -89,12 +108,32 @@ The **Meeting Room Booking System** allows authenticated users to create, view, 
 - Build and deploy only proceed if all tests pass
 - Self-hosted GitHub Actions runner installed on Azure VM
 
-### 6. Cloud Deployment on Azure VM
-- Application deployed on Microsoft Azure Virtual Machine (Ubuntu)
+### 6. Cloud Deployment on AWS EC2
+- Application deployed on AWS EC2 (Ubuntu)
 - Nginx configured as reverse proxy — serves React frontend on port 80, proxies `/api/*` to Node.js backend on port 5001
 - PM2 manages backend process with auto-restart on failure
 - Startup script (`startup.sh`) ensures everything recovers automatically after VM restarts
 - systemd service configured to run startup script on every boot
+
+---
+
+## Additional Features — Infrastructure Resilience
+### Automatic Recovery on VM Restart
+
+A custom startup script (startup.sh) was developed to ensure the application recovers automatically every time the EC2 instance restarts. The script runs as a systemd service, meaning it executes automatically on boot without any manual intervention. It performs six steps in sequence — setting the API URL, verifying environment variables, installing dependencies, rebuilding the frontend, restarting the backend via PM2, and reloading Nginx. This ensures the application is always in a fully operational state within minutes of the VM starting up.
+
+### Resilience to Public IP Address Changes
+
+The EC2 instance IP changes every time the VM is restarted. To handle this, the application was designed to operate independently of the public IP address. The frontend is configured to communicate with the backend via http://localhost rather than a hardcoded public IP, meaning no code changes or manual reconfiguration are required after a restart. The startup.sh script automatically writes the correct REACT_APP_API_URL=http://localhost value into the frontend environment file and rebuilds the React application on every boot, guaranteeing the frontend always points to the correct backend regardless of what IP the VM is assigned.
+
+### IP Management Utility
+
+An additional utility script (update-ip.sh) was developed to provide flexibility for switching between localhost and public IP access modes. When external access is required, the script auto-detects the current public IP using curl -s ifconfig.me, updates the frontend environment variable, rebuilds the application, and restarts all services in a single command. This eliminates the risk of human error when manually updating configuration files and makes the deployment process repeatable and reliable.
+
+### Environment Variable Protection
+
+All sensitive configuration values — including the MongoDB connection string, JWT secret, and API URLs — are stored as GitHub Secrets and injected into the application at deploy time through the CI/CD pipeline. The .env file is excluded from version control via .gitignore, ensuring credentials are never exposed in the GitHub repository. This follows industry best practices for secrets management in cloud-deployed applications.
+
 
 ---
 
@@ -189,7 +228,7 @@ npm test
 # Expected output: 16 passing
 ```
 
-### Production (Azure VM)
+### Production 
 ```bash
 # After every VM restart, run:
 ./startup.sh
@@ -214,6 +253,6 @@ Job 3: Deploy             ← restarts PM2 + reloads Nginx
 
 ## GitHub Repository
 
-**Starter Project:** https://github.com/nahaQUT/sampleapp_IFQ636.git
+**Meeting Room Booking App:** https://github.com/HashimHilal-QUT/MeetingRoomBook2
 
-**This Project:** https://github.com/HashimHilal-QUT/MeetingRoomBook2
+
