@@ -1,11 +1,7 @@
 # Meeting Room Booking System
 
-
-
 **IFN 636 Assignment 1.2: Software Requirements Analysis and Design (Full-Stack CRUD Application Development with DevOps Practices)**
-
 ---
-
 ## Student Details
 
 | | |
@@ -46,22 +42,6 @@ Password: Test1234!
 
 ---
 
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React.js, Tailwind CSS, Axios |
-| Backend | Node.js, Express.js |
-| Database | MongoDB Atlas (Cloud) |
-| Authentication | JWT (JSON Web Tokens) |
-| Web Server | Nginx (Reverse Proxy) |
-| Process Manager | PM2 |
-| Testing | Mocha, Chai, Sinon |
-| CI/CD | GitHub Actions |
-| Deployment | AWS EC2 Instance |
-
----
-
 ## Features Implemented
 
 ### 1. User Authentication (Starter Code Extended)
@@ -78,7 +58,29 @@ Password: Test1234!
 - **Delete** — Remove a booking with confirmation dialog
 - Ownership protection — users can only modify their own bookings (403 Forbidden for others)
 
-### 3. Unit Testing
+### 3. Version Control using GitHub
+- Git repository initialized and connected to GitHub
+- Feature branch workflow — `feature/crud-bookings` branch created
+- Pull Request raised and merged into `main`
+- `.gitignore` configured to exclude `node_modules`, `.env`, and `build/` folders
+
+### 4. CI/CD Integration with GitHub Actions
+- Automated pipeline triggered on every push to `main`
+- Three jobs running in sequence:
+  - **Job 1 — Backend Tests**: installs dependencies and runs 16 unit tests
+  - **Job 2 — Frontend Build**: builds React app with production environment variables
+  - **Job 3 — Deploy**: writes `.env` from GitHub Secrets, restarts PM2 backend, reloads Nginx
+- Build and deploy only proceed if all tests pass
+- Self-hosted GitHub Actions runner installed on Azure VM
+
+### 5. Cloud Deployment on AWS EC2
+- Application deployed on AWS EC2 (Ubuntu)
+- Nginx configured as reverse proxy — serves React frontend on port 80, proxies `/api/*` to Node.js backend on port 5001
+- PM2 manages backend process with auto-restart on failure
+- Startup script (`startup.sh`) ensures everything recovers automatically after VM restarts
+- systemd service configured to run startup script on every boot
+
+### 6. Unit Testing
 - 16 unit tests covering all CRUD operations
 - Tests written using Mocha, Chai, and Sinon
 - Stubs used to mock database calls — no real DB connection required for tests
@@ -92,49 +94,308 @@ Password: Test1234!
 | updateBooking | 4 tests |
 | deleteBooking | 4 tests |
 | **Total** | **16 passing** |
+---
 
-### 4. Version Control using GitHub
-- Git repository initialized and connected to GitHub
-- Feature branch workflow — `feature/crud-bookings` branch created
-- Pull Request raised and merged into `main`
-- `.gitignore` configured to exclude `node_modules`, `.env`, and `build/` folders
+## Test Cases Details
 
-### 5. CI/CD Integration with GitHub Actions
-- Automated pipeline triggered on every push to `main`
-- Three jobs running in sequence:
-  - **Job 1 — Backend Tests**: installs dependencies and runs 16 unit tests
-  - **Job 2 — Frontend Build**: builds React app with production environment variables
-  - **Job 3 — Deploy**: writes `.env` from GitHub Secrets, restarts PM2 backend, reloads Nginx
-- Build and deploy only proceed if all tests pass
-- Self-hosted GitHub Actions runner installed on Azure VM
+The test suite is located in `backend/test/booking_test.js` and is executed using the **Mocha** testing framework with **Chai** for assertions and **Sinon** for stubbing and spying. All database calls are mocked using Sinon stubs so that tests run in isolation without requiring a real MongoDB connection.
 
-### 6. Cloud Deployment on AWS EC2
-- Application deployed on AWS EC2 (Ubuntu)
-- Nginx configured as reverse proxy — serves React frontend on port 80, proxies `/api/*` to Node.js backend on port 5001
-- PM2 manages backend process with auto-restart on failure
-- Startup script (`startup.sh`) ensures everything recovers automatically after VM restarts
-- systemd service configured to run startup script on every boot
+**Shared Mock Data** used across all test groups:
+```
+mockUserId    : Generated MongoDB ObjectId representing a logged-in user
+mockBookingId : Generated MongoDB ObjectId representing a booking document
+mockBookingBody : {
+  title     : 'Team Standup'
+  room      : 'Room A'
+  date      : '2026-04-01'
+  startTime : '09:00'
+  endTime   : '09:30'
+}
+```
 
 ---
 
-## Additional Features — Infrastructure Resilience
-### Automatic Recovery on VM Restart
+### DESCRIBE: createBooking Function Test
+**Purpose:** Validates the CREATE operation — verifies that a new booking is correctly saved to the database and that the appropriate HTTP response is returned.
 
-A custom startup script (startup.sh) was developed to ensure the application recovers automatically every time the EC2 instance restarts. The script runs as a systemd service, meaning it executes automatically on boot without any manual intervention. It performs six steps in sequence — setting the API URL, verifying environment variables, installing dependencies, rebuilding the frontend, restarting the backend via PM2, and reloading Nginx. This ensures the application is always in a fully operational state within minutes of the VM starting up.
+---
 
-### Resilience to Public IP Address Changes
+**IT: Should create a new booking successfully**
 
-The EC2 instance IP changes every time the VM is restarted. To handle this, the application was designed to operate independently of the public IP address. The frontend is configured to communicate with the backend via http://localhost rather than a hardcoded public IP, meaning no code changes or manual reconfiguration are required after a restart. The startup.sh script automatically writes the correct REACT_APP_API_URL=http://localhost value into the frontend environment file and rebuilds the React application on every boot, guaranteeing the frontend always points to the correct backend regardless of what IP the VM is assigned.
+| | |
+|---|---|
+| **Test Type** | Positive / Happy Path |
+| **Stub** | `Booking.create` stubbed to resolve with a mock booking object |
+| **Mock Request** | `req.user._id = mockUserId`, `req.body = mockBookingBody` |
+| **Mock Response** | `res.status` stub, `res.json` spy |
+| **Assertions** | `expect(Booking.create calledOnceWith { ...mockBookingBody, user: mockUserId })` → `true` |
+| | `expect(res.status calledWith 201)` → `true` |
+| | `expect(res.json calledWith createdBooking)` → `true` |
+| **Expected Result** | HTTP 201 Created with booking object in response body |
 
-### IP Management Utility
+---
 
-An additional utility script (update-ip.sh) was developed to provide flexibility for switching between localhost and public IP access modes. When external access is required, the script auto-detects the current public IP using curl -s ifconfig.me, updates the frontend environment variable, rebuilds the application, and restarts all services in a single command. This eliminates the risk of human error when manually updating configuration files and makes the deployment process repeatable and reliable.
+**IT: Should return 500 if an error occurs during creation**
 
-### Environment Variable Protection
+| | |
+|---|---|
+| **Test Type** | Negative / Error Handling |
+| **Stub** | `Booking.create` stubbed to throw `new Error('DB Error')` |
+| **Mock Request** | `req.user._id = mockUserId`, `req.body = mockBookingBody` |
+| **Mock Response** | `res.status` stub, `res.json` spy |
+| **Assertions** | `expect(res.status calledWith 500)` → `true` |
+| | `expect(res.json calledWithMatch { message: 'DB Error' })` → `true` |
+| **Expected Result** | HTTP 500 Internal Server Error with error message |
 
-All sensitive configuration values — including the MongoDB connection string, JWT secret, and API URLs — are stored as GitHub Secrets and injected into the application at deploy time through the CI/CD pipeline. The .env file is excluded from version control via .gitignore, ensuring credentials are never exposed in the GitHub repository. This follows industry best practices for secrets management in cloud-deployed applications.
+---
 
+### DESCRIBE: getBookings Function Test
+**Purpose:** Validates the READ ALL operation — verifies that all bookings belonging to the authenticated user are retrieved and returned correctly.
 
+---
+
+**IT: Should return all bookings for the logged-in user**
+
+| | |
+|---|---|
+| **Test Type** | Positive / Happy Path |
+| **Stub** | `Booking.find` stubbed to return chainable object with `.sort()` resolving to array of 2 bookings |
+| **Mock Request** | `req.user._id = mockUserId` |
+| **Mock Response** | `res.json` spy, `res.status` stub |
+| **Assertions** | `expect(Booking.find calledOnceWith { user: mockUserId })` → `true` |
+| | `expect(res.json calledWith bookings array)` → `true` |
+| | `expect(res.status.called)` → `false` (no error status set) |
+| **Expected Result** | HTTP 200 with array of booking objects sorted by date and time |
+
+---
+
+**IT: Should return 500 if an error occurs during fetch**
+
+| | |
+|---|---|
+| **Test Type** | Negative / Error Handling |
+| **Stub** | `Booking.find` stubbed to throw `new Error('DB Error')` |
+| **Mock Request** | `req.user._id = mockUserId` |
+| **Mock Response** | `res.json` spy, `res.status` stub |
+| **Assertions** | `expect(res.status calledWith 500)` → `true` |
+| | `expect(res.json calledWithMatch { message: 'DB Error' })` → `true` |
+| **Expected Result** | HTTP 500 Internal Server Error with error message |
+
+---
+
+### DESCRIBE: getBookingById Function Test
+**Purpose:** Validates the READ SINGLE operation — verifies that a specific booking is retrieved by ID, with ownership checks enforced and appropriate error responses returned.
+
+---
+
+**IT: Should return a single booking by ID**
+
+| | |
+|---|---|
+| **Test Type** | Positive / Happy Path |
+| **Stub** | `Booking.findById` stubbed to resolve with mock booking object |
+| **Mock Request** | `req.params.id = mockBookingId`, `req.user._id = mockUserId` |
+| **Mock Response** | `res.json` spy, `res.status` stub |
+| **Assertions** | `expect(Booking.findById calledOnceWith mockBookingId)` → `true` |
+| | `expect(res.json calledWith booking)` → `true` |
+| **Expected Result** | HTTP 200 with the matching booking object |
+
+---
+
+**IT: Should return 404 if booking is not found**
+
+| | |
+|---|---|
+| **Test Type** | Negative / Not Found |
+| **Stub** | `Booking.findById` stubbed to resolve with `null` |
+| **Mock Request** | `req.params.id = randomObjectId`, `req.user._id = mockUserId` |
+| **Mock Response** | `res.status` stub, `res.json` spy |
+| **Assertions** | `expect(res.status calledWith 404)` → `true` |
+| | `expect(res.json calledWith { message: 'Booking not found' })` → `true` |
+| **Expected Result** | HTTP 404 Not Found |
+
+---
+
+**IT: Should return 403 if booking belongs to a different user**
+
+| | |
+|---|---|
+| **Test Type** | Negative / Authorisation |
+| **Stub** | `Booking.findById` stubbed to resolve with booking owned by `otherUserId` |
+| **Mock Request** | `req.params.id = mockBookingId`, `req.user._id = mockUserId` (different user) |
+| **Mock Response** | `res.status` stub, `res.json` spy |
+| **Assertions** | `expect(res.status calledWith 403)` → `true` |
+| | `expect(res.json calledWith { message: 'Not authorized' })` → `true` |
+| **Expected Result** | HTTP 403 Forbidden — ownership mismatch detected |
+
+---
+
+**IT: Should return 500 if an error occurs**
+
+| | |
+|---|---|
+| **Test Type** | Negative / Error Handling |
+| **Stub** | `Booking.findById` stubbed to throw `new Error('DB Error')` |
+| **Assertions** | `expect(res.status calledWith 500)` → `true` |
+| | `expect(res.json calledWithMatch { message: 'DB Error' })` → `true` |
+| **Expected Result** | HTTP 500 Internal Server Error |
+
+---
+
+### DESCRIBE: updateBooking Function Test
+**Purpose:** Validates the UPDATE operation — verifies that an existing booking's fields are correctly modified, saved to the database, and that ownership and error conditions are handled appropriately.
+
+---
+
+**IT: Should update a booking successfully**
+
+| | |
+|---|---|
+| **Test Type** | Positive / Happy Path |
+| **Stub** | `Booking.findById` resolves with existing booking; `booking.save` stubbed to resolve |
+| **Mock Request** | `req.body = { title: 'Updated Standup', room: 'Room C' }` |
+| **Mock Response** | `res.json` spy, `res.status` stub |
+| **Assertions** | `expect(existingBooking.title)` → `'Updated Standup'` |
+| | `expect(existingBooking.room)` → `'Room C'` |
+| | `expect(existingBooking.save.calledOnce)` → `true` |
+| | `expect(res.status.called)` → `false` (no error) |
+| | `expect(res.json.calledOnce)` → `true` |
+| **Expected Result** | HTTP 200 with updated booking object |
+
+---
+
+**IT: Should return 404 if booking is not found**
+
+| | |
+|---|---|
+| **Test Type** | Negative / Not Found |
+| **Stub** | `Booking.findById` resolves with `null` |
+| **Assertions** | `expect(res.status calledWith 404)` → `true` |
+| | `expect(res.json calledWith { message: 'Booking not found' })` → `true` |
+| **Expected Result** | HTTP 404 Not Found |
+
+---
+
+**IT: Should return 403 if booking belongs to a different user**
+
+| | |
+|---|---|
+| **Test Type** | Negative / Authorisation |
+| **Stub** | `Booking.findById` resolves with booking owned by `otherUserId` |
+| **Assertions** | `expect(res.status calledWith 403)` → `true` |
+| | `expect(res.json calledWith { message: 'Not authorized' })` → `true` |
+| **Expected Result** | HTTP 403 Forbidden — user cannot update another user's booking |
+
+---
+
+**IT: Should return 500 if an error occurs**
+
+| | |
+|---|---|
+| **Test Type** | Negative / Error Handling |
+| **Stub** | `Booking.findById` throws `new Error('DB Error')` |
+| **Assertions** | `expect(res.status calledWith 500)` → `true` |
+| | `expect(res.json calledWithMatch { message: 'DB Error' })` → `true` |
+| **Expected Result** | HTTP 500 Internal Server Error |
+
+---
+
+### DESCRIBE: deleteBooking Function Test
+**Purpose:** Validates the DELETE operation — verifies that a booking is permanently removed from the database, with ownership verification and proper error handling enforced at every step.
+
+---
+
+**IT: Should delete a booking successfully**
+
+| | |
+|---|---|
+| **Test Type** | Positive / Happy Path |
+| **Stub** | `Booking.findById` resolves with booking; `booking.deleteOne` stubbed to resolve |
+| **Mock Request** | `req.params.id = mockBookingId.toString()` |
+| **Mock Response** | `res.json` spy, `res.status` stub |
+| **Assertions** | `expect(Booking.findById calledOnceWith mockBookingId)` → `true` |
+| | `expect(booking.deleteOne.calledOnce)` → `true` |
+| | `expect(res.json calledWith { message: 'Booking deleted' })` → `true` |
+| **Expected Result** | HTTP 200 with confirmation message `'Booking deleted'` |
+
+---
+
+**IT: should return 404 if booking is not found**
+
+| | |
+|---|---|
+| **Test Type** | Negative / Not Found |
+| **Stub** | `Booking.findById` resolves with `null` |
+| **Assertions** | `expect(res.status calledWith 404)` → `true` |
+| | `expect(res.json calledWith { message: 'Booking not found' })` → `true` |
+| **Expected Result** | HTTP 404 Not Found |
+
+---
+
+**IT: Should return 403 if booking belongs to a different user**
+
+| | |
+|---|---|
+| **Test Type** | Negative / Authorisation |
+| **Stub** | `Booking.findById` resolves with booking owned by `otherUserId` |
+| **Assertions** | `expect(res.status calledWith 403)` → `true` |
+| | `expect(res.json calledWith { message: 'Not authorized' })` → `true` |
+| **Expected Result** | HTTP 403 Forbidden — user cannot delete another user's booking |
+
+---
+
+**IT: should return 500 if an error occurs**
+
+| | |
+|---|---|
+| **Test Type** | Negative / Error Handling |
+| **Stub** | `Booking.findById` throws `new Error('DB Error')` |
+| **Assertions** | `expect(res.status calledWith 500)` → `true` |
+| | `expect(res.json calledWithMatch { message: 'DB Error' })` → `true` |
+| **Expected Result** | HTTP 500 Internal Server Error |
+
+---
+
+### Test Results Summary
+
+```
+  createBooking Function Test
+    ✓ should create a new booking successfully
+    ✓ should return 500 if an error occurs during creation
+
+  getBookings Function Test
+    ✓ should return all bookings for the logged-in user
+    ✓ should return 500 if an error occurs during fetch
+
+  getBookingById Function Test
+    ✓ should return a single booking by ID
+    ✓ should return 404 if booking is not found
+    ✓ should return 403 if booking belongs to a different user
+    ✓ should return 500 if an error occurs
+
+  updateBooking Function Test
+    ✓ should update a booking successfully
+    ✓ should return 404 if booking is not found
+    ✓ should return 403 if booking belongs to a different user
+    ✓ should return 500 if an error occurs
+
+  deleteBooking Function Test
+    ✓ should delete a booking successfully
+    ✓ should return 404 if booking is not found
+    ✓ should return 403 if booking belongs to a different user
+    ✓ should return 500 if an error occurs
+
+  16 passing (70ms)
+```
+
+| Test Group | Total ITs | Passing |
+|---|---|---|
+| createBooking | 2 | ✅ 2 |
+| getBookings | 2 | ✅ 2 |
+| getBookingById | 4 | ✅ 4 |
+| updateBooking | 4 | ✅ 4 |
+| deleteBooking | 4 | ✅ 4 |
+| **Total** | **16** | **✅ 16** |
 ---
 
 ## Project Structure
@@ -250,9 +511,4 @@ Job 3: Deploy             ← restarts PM2 + reloads Nginx
 ```
 
 ---
-
-## GitHub Repository
-
-**Meeting Room Booking App:** https://github.com/HashimHilal-QUT/MeetingRoomBook2
-
 
