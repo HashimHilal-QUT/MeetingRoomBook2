@@ -42,6 +42,53 @@ Password: Test1234!
 
 ---
 
+## Running the Application
+
+### Local Development
+```bash
+# Backend
+cd backend
+cp .env.example .env      # fill in MONGO_URI and JWT_SECRET
+npm install
+npm run dev               # runs on port 5001
+
+# Frontend (new terminal)
+cd frontend
+npm install
+npm start                 # runs on port 3000
+```
+
+### Run Tests
+```bash
+cd backend
+npm test
+# Expected output: 16 passing
+```
+
+### Production 
+```bash
+# After every VM restart, run:
+./startup.sh
+# Then open Firefox and go to http://localhost
+```
+
+---
+
+## CI/CD Pipeline
+
+```
+Push to main branch
+        ↓
+Job 1: Backend Tests      ← runs 16 unit tests
+        ↓ (only if pass)
+Job 2: Frontend Build     ← builds React app
+        ↓ (only if pass)
+Job 3: Deploy             ← restarts PM2 + reloads Nginx
+```
+
+---
+
+
 ## Features Implemented
 
 ### 1. User Authentication (Starter Code Extended)
@@ -465,50 +512,3 @@ MeetingRoomBook2/
 | DELETE | `/api/bookings/:id` | Delete a booking | Yes |
 
 ---
-
-## Running the Application
-
-### Local Development
-```bash
-# Backend
-cd backend
-cp .env.example .env      # fill in MONGO_URI and JWT_SECRET
-npm install
-npm run dev               # runs on port 5001
-
-# Frontend (new terminal)
-cd frontend
-npm install
-npm start                 # runs on port 3000
-```
-
-### Run Tests
-```bash
-cd backend
-npm test
-# Expected output: 16 passing
-```
-
-### Production 
-```bash
-# After every VM restart, run:
-./startup.sh
-# Then open Firefox and go to http://localhost
-```
-
----
-
-## CI/CD Pipeline
-
-```
-Push to main branch
-        ↓
-Job 1: Backend Tests      ← runs 16 unit tests
-        ↓ (only if pass)
-Job 2: Frontend Build     ← builds React app
-        ↓ (only if pass)
-Job 3: Deploy             ← restarts PM2 + reloads Nginx
-```
-
----
-
