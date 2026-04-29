@@ -27,9 +27,6 @@ The **Meeting Room Booking System** allows authenticated users to create, view, 
 Username: ububtu   
 Password: Password123!
 
-**MongoDB**
-Username: hashim_db_user   
-Password: Password123!
 
 ---
 ## Meeting Room Booking Application
