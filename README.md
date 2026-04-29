@@ -34,7 +34,7 @@ Password: Password123!
 After RDP please access via localhost as Public IP port 80 is not accessible
 Use following Credentials to test CRUD Functionality for Bookings
 
-User Email: test@test.com    
+User Email: User2@gmail.com    
 Password: Test1234!
 
 ---
