@@ -24,7 +24,7 @@ The **Meeting Room Booking System** allows authenticated users to create, view, 
 ---
 ## Credentials
 **RDP** 
-Username: ububtu   
+Username: ubuntu   
 Password: Password123!
 
 
